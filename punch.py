@@ -1,4 +1,5 @@
-import time, os
+import time, os, requests
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -125,8 +126,38 @@ def atualiza_episodios(anime, driver=driver):
         pass
 
 
+def atualiza_link_de_video(link):
+    page = requests.get(link)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    
+    script = soup.find_all('script')[6].text
+    script = script.split('\n')
+    for link in script:
+        if link.find("'type': 'video/mp4', 'src': ") > 0:
+            n = link.find("'type': 'video/mp4', 'src': ")
+            link = link[n:]
+            n = link.find("h")
+            link = link[n:].replace("'}],", "")
+            n = link.find("mp4")
+            return link[:n + 3]
+        else:
+            pass
+
+'''
 animes = Anime.select()
 for anime in animes:
     if anime.status == 0 and anime.numeroEpisodio > 0:
         print('{}'.format(anime.nome))
         atualiza_episodios(anime)
+'''
+
+i = 1
+episodios = Episodios.select()
+for episodio in episodios:
+    if episodio.video == '':
+        episodio.video = atualiza_link_de_video(episodio.link)
+        print(episodio.video)
+        time.sleep(2)
+        i += 1
+    if i == 10:
+        break
